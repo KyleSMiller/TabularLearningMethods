@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-PATH = 'C:/Users/nickf/Dropbox/Classes/RL/results/'
+PATH = 'C:/Users/raysp/Desktop/School/College/16_Senior/Fall Semester/CS 5640/Assn 2'
 
 
 class RandomAgent(object):
