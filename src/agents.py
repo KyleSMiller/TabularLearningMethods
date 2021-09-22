@@ -112,23 +112,8 @@ class TabularAgent(object):
                 print("Updating graphs at %d iterations" % iteration)
                 if iteration > 0:
                     self.averageRewardList.append(np.mean(np.array(self.rewardList[-500:])))
-                self.qFunction0.imshow(self.Q[:,:,0].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction1.imshow(self.Q[:,:,1].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction2.imshow(self.Q[:,:,2].T, cmap='jet', vmin=-210, vmax=0)
-                self.policy.cla()
-                self.policy.set_title("Policy b=left, r=right")
-                self.policy.set_xticks([])
-                self.policy.set_yticks([])
-                self.policy.invert_yaxis()
-                self.policy.imshow(np.argmax(self.Q, axis = 2).T, cmap='bwr', vmin=0, vmax=2)
-                self.policy.plot([self.trajectory[i][0] for i in range(0, len(self.trajectory))], 
-                                 [self.trajectory[i][1] for i in range(0, len(self.trajectory))], "k",  linewidth=4)
-                self.reward.plot([i for i in range(0,len(self.rewardList))], self.rewardList, c = 'k')
-                self.reward.plot([i*500 for i in range(0,len(self.averageRewardList))], self.averageRewardList, c = 'r',  linewidth=4)
-                self.reward.set_ylim(-210, -100)
-                plt.draw()
-                self.saveImageOne(iteration)
-                plt.pause(0.001)
+                self.showPlot(iteration)
+
             self.trajectory = []
                 
     def Qupdate(self, state, action, reward, nextState):
@@ -152,6 +137,26 @@ class TabularAgent(object):
             os.makedirs(PATH)
         #print(onePath + fileName + '.png')
         self.fig.savefig(PATH + fileName + '.png',  dpi=100)
+
+    def showPlot(self, iteration):
+        self.qFunction0.imshow(self.Q[:, :, 0].T, cmap='jet', vmin=-210, vmax=0)
+        self.qFunction1.imshow(self.Q[:, :, 1].T, cmap='jet', vmin=-210, vmax=0)
+        self.qFunction2.imshow(self.Q[:, :, 2].T, cmap='jet', vmin=-210, vmax=0)
+        self.policy.cla()
+        self.policy.set_title("Policy b=left, r=right")
+        self.policy.set_xticks([])
+        self.policy.set_yticks([])
+        self.policy.invert_yaxis()
+        self.policy.imshow(np.argmax(self.Q, axis=2).T, cmap='bwr', vmin=0, vmax=2)
+        self.policy.plot([self.trajectory[i][0] for i in range(0, len(self.trajectory))],
+                         [self.trajectory[i][1] for i in range(0, len(self.trajectory))], "k", linewidth=4)
+        self.reward.plot([i for i in range(0, len(self.rewardList))], self.rewardList, c='k')
+        self.reward.plot([i * 500 for i in range(0, len(self.averageRewardList))], self.averageRewardList, c='r',
+                         linewidth=4)
+        self.reward.set_ylim(-210, -100)
+        plt.draw()
+        self.saveImageOne(iteration)
+        plt.pause(0.001)
 
 
 class MonteCarloAgent(TabularAgent):
@@ -193,24 +198,7 @@ class MonteCarloAgent(TabularAgent):
                 print("Updating graphs at %d iterations" % episode)
                 if episode > 0:
                     self.averageRewardList.append(np.mean(np.array(self.rewardList[-500:])))
-                self.qFunction0.imshow(self.Q[:, :, 0].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction1.imshow(self.Q[:, :, 1].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction2.imshow(self.Q[:, :, 2].T, cmap='jet', vmin=-210, vmax=0)
-                self.policy.cla()
-                self.policy.set_title("Policy b=left, r=right")
-                self.policy.set_xticks([])
-                self.policy.set_yticks([])
-                self.policy.invert_yaxis()
-                self.policy.imshow(np.argmax(self.Q, axis=2).T, cmap='bwr', vmin=0, vmax=2)
-                self.policy.plot([self.trajectory[i][0] for i in range(0, len(self.trajectory))],
-                                 [self.trajectory[i][1] for i in range(0, len(self.trajectory))], "k", linewidth=4)
-                self.reward.plot([i for i in range(0, len(self.rewardList))], self.rewardList, c='k')
-                self.reward.plot([i * 500 for i in range(0, len(self.averageRewardList))], self.averageRewardList,
-                                 c='r', linewidth=4)
-                self.reward.set_ylim(-210, -100)
-                plt.draw()
-                super().saveImageOne(episode)
-                plt.pause(0.001)
+                super().showPlot(episode)
             self.trajectory = []
 
     def monteCarloLearn(self):
@@ -291,24 +279,7 @@ class SARSAAgent(TabularAgent):
                 print("Updating graphs at %d iterations" % iteration)
                 if iteration > 0:
                     self.averageRewardList.append(np.mean(np.array(self.rewardList[-500:])))
-                self.qFunction0.imshow(self.Q[:, :, 0].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction1.imshow(self.Q[:, :, 1].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction2.imshow(self.Q[:, :, 2].T, cmap='jet', vmin=-210, vmax=0)
-                self.policy.cla()
-                self.policy.set_title("Policy b=left, r=right")
-                self.policy.set_xticks([])
-                self.policy.set_yticks([])
-                self.policy.invert_yaxis()
-                self.policy.imshow(np.argmax(self.Q, axis=2).T, cmap='bwr', vmin=0, vmax=2)
-                self.policy.plot([self.trajectory[i][0] for i in range(0, len(self.trajectory))],
-                                 [self.trajectory[i][1] for i in range(0, len(self.trajectory))], "k", linewidth=4)
-                self.reward.plot([i for i in range(0, len(self.rewardList))], self.rewardList, c='k')
-                self.reward.plot([i * 500 for i in range(0, len(self.averageRewardList))], self.averageRewardList,
-                                 c='r', linewidth=4)
-                self.reward.set_ylim(-210, -100)
-                plt.draw()
-                super().saveImageOne(iteration)
-                plt.pause(0.001)
+                super().showPlot(iteration)
             self.trajectory = []
 
 
@@ -351,24 +322,7 @@ class TDnAgent(TabularAgent):
                 print("Updating graphs at %d iterations" % episode)
                 if episode > 0:
                     self.averageRewardList.append(np.mean(np.array(self.rewardList[-500:])))
-                self.qFunction0.imshow(self.Q[:, :, 0].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction1.imshow(self.Q[:, :, 1].T, cmap='jet', vmin=-210, vmax=0)
-                self.qFunction2.imshow(self.Q[:, :, 2].T, cmap='jet', vmin=-210, vmax=0)
-                self.policy.cla()
-                self.policy.set_title("Policy b=left, r=right")
-                self.policy.set_xticks([])
-                self.policy.set_yticks([])
-                self.policy.invert_yaxis()
-                self.policy.imshow(np.argmax(self.Q, axis=2).T, cmap='bwr', vmin=0, vmax=2)
-                self.policy.plot([self.trajectory[i][0] for i in range(0, len(self.trajectory))],
-                                 [self.trajectory[i][1] for i in range(0, len(self.trajectory))], "k", linewidth=4)
-                self.reward.plot([i for i in range(0, len(self.rewardList))], self.rewardList, c='k')
-                self.reward.plot([i * 500 for i in range(0, len(self.averageRewardList))], self.averageRewardList,
-                                 c='r', linewidth=4)
-                self.reward.set_ylim(-210, -100)
-                plt.draw()
-                super().saveImageOne(episode)
-                plt.pause(0.001)
+                super().showPlot(episode)
             self.trajectory = []
 
     def temporalDifferenceLearn(self):
