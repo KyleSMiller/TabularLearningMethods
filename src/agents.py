@@ -154,85 +154,17 @@ class TabularAgent(object):
         self.fig.savefig(PATH + fileName + '.png',  dpi=100)
 
 
-class MonteCarloAgent(object):
+class MonteCarloAgent(TabularAgent):
     def __init__(self, environment):
-        # Set up figure
-        self.fig = plt.figure(figsize=(40, 8), facecolor='white')
-        self.qFunction0 = self.fig.add_subplot(1, 5, 1, frameon=True)
-        self.qFunction0.set_title("Q for action 0")
-        self.qFunction0.set_xticks([])
-        self.qFunction0.set_yticks([])
-        self.qFunction0.invert_yaxis()
-        self.qFunction0.set_ylabel('velocity')
-        self.qFunction0.set_xlabel('position')
-        self.qFunction1 = self.fig.add_subplot(1, 5, 2, frameon=True)
-        self.qFunction1.set_title("Q for action 1")
-        self.qFunction1.set_xticks([])
-        self.qFunction1.set_yticks([])
-        self.qFunction1.invert_yaxis()
-        self.qFunction1.set_xlabel('position')
-        self.qFunction2 = self.fig.add_subplot(1, 5, 3, frameon=True)
-        self.qFunction2.set_title("Q for action 2")
-        self.qFunction2.set_xticks([])
-        self.qFunction2.set_yticks([])
-        self.qFunction2.invert_yaxis()
-        self.qFunction2.set_xlabel('position')
-        self.policy = self.fig.add_subplot(1, 5, 4, frameon=True)
-        # self.policy.autoscale(False)
-        self.policy.set_title("Policy b=left, r=right")
-        self.policy.set_xticks([])
-        self.policy.set_yticks([])
-        self.policy.invert_yaxis()
-        self.reward = self.fig.add_subplot(1, 5, 5, frameon=True)
-        self.reward.set_title("Reward vs. learning its")
-        self.reward.set_xlabel('iterations')
-        self.reward.set_ylabel('reward')
-        plt.show(block=False)
-        # setup the hyper parameters
-        self.environment = environment
-        self.exploreRate = 0.9
-        self.learningRate = 0.2
-        self.maxBoxes = 20
-        # keep track of rewards for visualization
-        self.rewardList = []
-        self.oneReward = 0
-        self.Q = np.zeros(shape=(self.maxBoxes, self.maxBoxes, self.environment.action_space.n))
-        self.trajectory = []
-        self.averageRewardList = []
-        # setup an array indexed by state and action, each location stores a dictionary of next states and rewards
-        self.nextStateReward = [[[dict(), dict(), dict()] for _ in range(self.maxBoxes)] for _ in range(self.maxBoxes)]
-        # self.Q = np.random.uniform(low = -1, high = 1, size = (self.maxBoxes+1, self.maxBoxes+1, self.environment.action_space.n))
+        super().__init__(environment)
         # keep track of rewards, actions, and states for monte carlo learning. [(s1, action, r1), (s2, action, r2), ... (sT, action, rT)]
         self.monteCarloTrajectory = []
         self.discountFactor = 0.9
 
-    def convertState(self, state):
-        #     Observation:
-        # Type: Box(2)
-        # Num    Observation               Min            Max
-        # 0      Car Position              -1.2           0.6
-        # 1      Car Velocity              -0.07          0.07
-        # converts the continuous values to integers for the table
-        return (
-        self.convert(state[0], self.environment.observation_space.low[0], self.environment.observation_space.high[0],
-                     self.maxBoxes),
-        self.convert(state[1], self.environment.observation_space.low[1], self.environment.observation_space.high[1],
-                     self.maxBoxes))
-
-    def convert(self, value, minV, maxV, howMany):
-        return int(round(howMany * (value - minV) / (maxV - minV)))
-
-    def act(self, stateC):
-        state = self.convertState(stateC)
-        if np.random.random() < 1 - self.exploreRate:
-            return np.argmax(self.Q[state[0], state[1]])
-        else:
-            return np.random.randint(0, self.environment.action_space.n)
-
     def learn(self, stateC, nextStateC, action, reward, done, episode):
-        state = self.convertState(stateC)
+        state = super().convertState(stateC)
         self.trajectory.append(state)
-        nextState = self.convertState(nextStateC)
+        nextState = super().convertState(nextStateC)
         # remember this state transition
         if not nextState in self.nextStateReward[state[0]][state[1]][action]:
             self.nextStateReward[state[0]][state[1]][action][nextState] = reward
@@ -277,7 +209,7 @@ class MonteCarloAgent(object):
                                  c='r', linewidth=4)
                 self.reward.set_ylim(-210, -100)
                 plt.draw()
-                self.saveImageOne(episode)
+                super().saveImageOne(episode)
                 plt.pause(0.001)
             self.trajectory = []
 
@@ -324,93 +256,9 @@ class MonteCarloAgent(object):
     #         self.Q[state[0], state[1], action] += self.learningRate * (G - self.Q[state[0], state[1], action])
 
 
-    def Qupdate(self, state, action, reward, nextState):
-        qEstimate = reward + max(self.Q[nextState[0], nextState[1]])
-        # incrementally update the Q value in the table
-        self.Q[state[0], state[1], action] += self.learningRate * (qEstimate - self.Q[state[0], state[1], action])
-
-    def learnFromMemory(self):
-        for x in range(0, self.maxBoxes):
-            for xDot in range(0, self.maxBoxes):
-                for a in range(0, self.environment.action_space.n):
-                    for nextState in self.nextStateReward[x][xDot][a]:
-                        reward = self.nextStateReward[x][xDot][a][nextState]
-                        # print(nextState, reward)
-                        self.Qupdate((x, xDot), a, reward, nextState)
-
-    def saveImageOne(self, iteration):
-        # print pathOut + fileName
-        fileName = "MC_" + str(iteration).rjust(6, '0')
-        if not os.path.exists(PATH):
-            os.makedirs(PATH)
-        # print(onePath + fileName + '.png')
-        self.fig.savefig(PATH + fileName + '.png', dpi=100)
-
-
-class SARSAAgent(object):
+class SARSAAgent(TabularAgent):
     def __init__(self, environment):
-        # Set up figure
-        self.fig = plt.figure(figsize=(40, 8), facecolor='white')
-        self.qFunction0 = self.fig.add_subplot(1, 5, 1, frameon=True)
-        self.qFunction0.set_title("Q for action 0")
-        self.qFunction0.set_xticks([])
-        self.qFunction0.set_yticks([])
-        self.qFunction0.invert_yaxis()
-        self.qFunction0.set_ylabel('velocity')
-        self.qFunction0.set_xlabel('position')
-        self.qFunction1 = self.fig.add_subplot(1, 5, 2, frameon=True)
-        self.qFunction1.set_title("Q for action 1")
-        self.qFunction1.set_xticks([])
-        self.qFunction1.set_yticks([])
-        self.qFunction1.invert_yaxis()
-        self.qFunction1.set_xlabel('position')
-        self.qFunction2 = self.fig.add_subplot(1, 5, 3, frameon=True)
-        self.qFunction2.set_title("Q for action 2")
-        self.qFunction2.set_xticks([])
-        self.qFunction2.set_yticks([])
-        self.qFunction2.invert_yaxis()
-        self.qFunction2.set_xlabel('position')
-        self.policy = self.fig.add_subplot(1, 5, 4, frameon=True)
-        # self.policy.autoscale(False)
-        self.policy.set_title("Policy b=left, r=right")
-        self.policy.set_xticks([])
-        self.policy.set_yticks([])
-        self.policy.invert_yaxis()
-        self.reward = self.fig.add_subplot(1, 5, 5, frameon=True)
-        self.reward.set_title("Reward vs. learning its")
-        self.reward.set_xlabel('iterations')
-        self.reward.set_ylabel('reward')
-        plt.show(block=False)
-        # setup the hyper parameters
-        self.environment = environment
-        self.exploreRate = 0.9
-        self.learningRate = 0.2
-        self.maxBoxes = 100
-        # keep track of rewards for visualization
-        self.rewardList = []
-        self.oneReward = 0
-        self.Q = np.zeros(shape=(self.maxBoxes, self.maxBoxes, self.environment.action_space.n))
-        self.trajectory = []
-        self.averageRewardList = []
-        # setup an array indexed by state and action, each location stores a dictionary of next states and rewards
-        self.nextStateReward = [[[dict(), dict(), dict()] for _ in range(self.maxBoxes)] for _ in range(self.maxBoxes)]
-        # self.Q = np.random.uniform(low = -1, high = 1, size = (self.maxBoxes+1, self.maxBoxes+1, self.environment.action_space.n))
-
-    def convertState(self, state):
-        #     Observation:
-        # Type: Box(2)
-        # Num    Observation               Min            Max
-        # 0      Car Position              -1.2           0.6
-        # 1      Car Velocity              -0.07          0.07
-        # converts the continuous values to integers for the table
-        return (
-        self.convert(state[0], self.environment.observation_space.low[0], self.environment.observation_space.high[0],
-                     self.maxBoxes),
-        self.convert(state[1], self.environment.observation_space.low[1], self.environment.observation_space.high[1],
-                     self.maxBoxes))
-
-    def convert(self, value, minV, maxV, howMany):
-        return int(round(howMany * (value - minV) / (maxV - minV)))
+        super().__init__(environment)
 
     def act(self, stateC):
         state = self.convertState(stateC)
@@ -420,17 +268,17 @@ class SARSAAgent(object):
             return np.random.randint(0, self.environment.action_space.n)
 
     def learn(self, stateC, nextStateC, action, reward, done, iteration):
-        state = self.convertState(stateC)
+        state = super().convertState(stateC)
         self.trajectory.append(state)
-        nextState = self.convertState(nextStateC)
+        nextState = super().convertState(nextStateC)
         # remember this state transition
         if not nextState in self.nextStateReward[state[0]][state[1]][action]:
             self.nextStateReward[state[0]][state[1]][action][nextState] = reward
         # use the Bellman relationship to get a new estimate for Q
-        self.Qupdate(state, action, reward, nextState)
+        super().Qupdate(state, action, reward, nextState)
         self.oneReward += reward
         if done:
-            self.learnFromMemory()
+            super().learnFromMemory()
             self.trajectory.append(nextState)
             # reduce th explore rate
             self.exploreRate = max(self.exploreRate - 0.8 / 10000, 0)
@@ -459,119 +307,28 @@ class SARSAAgent(object):
                                  c='r', linewidth=4)
                 self.reward.set_ylim(-210, -100)
                 plt.draw()
-                self.saveImageOne(iteration)
+                super().saveImageOne(iteration)
                 plt.pause(0.001)
             self.trajectory = []
 
-    def Qupdate(self, state, action, reward, nextState):
-        qEstimate = reward + max(self.Q[nextState[0], nextState[1]])
-        # incrementally update the Q value in the table
-        self.Q[state[0], state[1], action] += self.learningRate * (qEstimate - self.Q[state[0], state[1], action])
 
-    def learnFromMemory(self):
-        for x in range(0, self.maxBoxes):
-            for xDot in range(0, self.maxBoxes):
-                for a in range(0, self.environment.action_space.n):
-                    for nextState in self.nextStateReward[x][xDot][a]:
-                        reward = self.nextStateReward[x][xDot][a][nextState]
-                        # print(nextState, reward)
-                        self.Qupdate((x, xDot), a, reward, nextState)
-
-    def saveImageOne(self, iteration):
-        # print pathOut + fileName
-        fileName = "MC_" + str(iteration).rjust(6, '0')
-        if not os.path.exists(PATH):
-            os.makedirs(PATH)
-        # print(onePath + fileName + '.png')
-        self.fig.savefig(PATH + fileName + '.png', dpi=100)
-
-
-class TDnAgent(object):
+class TDnAgent(TabularAgent):
     def __init__(self, environment, n=50, learningRate=0.2):
-        # Set up figure
-        self.fig = plt.figure(figsize=(40, 8), facecolor='white')
-        self.qFunction0 = self.fig.add_subplot(1, 5, 1, frameon=True)
-        self.qFunction0.set_title("Q for action 0")
-        self.qFunction0.set_xticks([])
-        self.qFunction0.set_yticks([])
-        self.qFunction0.invert_yaxis()
-        self.qFunction0.set_ylabel('velocity')
-        self.qFunction0.set_xlabel('position')
-        self.qFunction1 = self.fig.add_subplot(1, 5, 2, frameon=True)
-        self.qFunction1.set_title("Q for action 1")
-        self.qFunction1.set_xticks([])
-        self.qFunction1.set_yticks([])
-        self.qFunction1.invert_yaxis()
-        self.qFunction1.set_xlabel('position')
-        self.qFunction2 = self.fig.add_subplot(1, 5, 3, frameon=True)
-        self.qFunction2.set_title("Q for action 2")
-        self.qFunction2.set_xticks([])
-        self.qFunction2.set_yticks([])
-        self.qFunction2.invert_yaxis()
-        self.qFunction2.set_xlabel('position')
-        self.policy = self.fig.add_subplot(1, 5, 4, frameon=True)
-        # self.policy.autoscale(False)
-        self.policy.set_title("Policy b=left, r=right")
-        self.policy.set_xticks([])
-        self.policy.set_yticks([])
-        self.policy.invert_yaxis()
-        self.reward = self.fig.add_subplot(1, 5, 5, frameon=True)
-        self.reward.set_title("Reward vs. learning its")
-        self.reward.set_xlabel('iterations')
-        self.reward.set_ylabel('reward')
-        plt.show(block=False)
+        super().__init__(environment)
         # setup the hyper parameters
-        self.environment = environment
-        self.exploreRate = 0.9
         self.learningRate = learningRate # 0.2
-        self.maxBoxes = 20
-        # keep track of rewards for visualization
-        self.rewardList = []
-        self.oneReward = 0
-        self.Q = np.zeros(shape=(self.maxBoxes, self.maxBoxes, self.environment.action_space.n))
-        self.trajectory = []
-        self.averageRewardList = []
-        # setup an array indexed by state and action, each location stores a dictionary of next states and rewards
-        self.nextStateReward = [[[dict(), dict(), dict()] for _ in range(self.maxBoxes)] for _ in range(self.maxBoxes)]
-        # self.Q = np.random.uniform(low = -1, high = 1, size = (self.maxBoxes+1, self.maxBoxes+1, self.environment.action_space.n))
+        self.n = n
         # keep track of rewards, actions, and states for TD(n) learning. [(s1, action, r1, nextState), ... (sT, action, rT, nextState)]
         self.tdTrajectory = []
         self.discountFactor = 0.9
-        self.n = n
-
-    def convertState(self, state):
-        #     Observation:
-        # Type: Box(2)
-        # Num    Observation               Min            Max
-        # 0      Car Position              -1.2           0.6
-        # 1      Car Velocity              -0.07          0.07
-        # converts the continuous values to integers for the table
-        return (
-        self.convert(state[0], self.environment.observation_space.low[0], self.environment.observation_space.high[0],
-                     self.maxBoxes),
-        self.convert(state[1], self.environment.observation_space.low[1], self.environment.observation_space.high[1],
-                     self.maxBoxes))
-
-    def convert(self, value, minV, maxV, howMany):
-        return int(round(howMany * (value - minV) / (maxV - minV)))
-
-    def act(self, stateC):
-        state = self.convertState(stateC)
-        if np.random.random() < 1 - self.exploreRate:
-            return np.argmax(self.Q[state[0], state[1]])
-        else:
-            return np.random.randint(0, self.environment.action_space.n)
 
     def learn(self, stateC, nextStateC, action, reward, done, episode):
-        state = self.convertState(stateC)
+        state = super().convertState(stateC)
         self.trajectory.append(state)
-        nextState = self.convertState(nextStateC)
+        nextState = super().convertState(nextStateC)
         # remember this state transition
         if not nextState in self.nextStateReward[state[0]][state[1]][action]:
             self.nextStateReward[state[0]][state[1]][action][nextState] = reward
-
-        # # use the Bellman relationship to get a new estimate for Q
-        # self.Qupdate(state, action, reward, nextState)
 
         self.oneReward += reward
 
@@ -610,7 +367,7 @@ class TDnAgent(object):
                                  c='r', linewidth=4)
                 self.reward.set_ylim(-210, -100)
                 plt.draw()
-                self.saveImageOne(episode)
+                super().saveImageOne(episode)
                 plt.pause(0.001)
             self.trajectory = []
 
@@ -637,25 +394,3 @@ class TDnAgent(object):
                 break
 
             t += 1
-
-    def Qupdate(self, state, action, reward, nextState):
-        qEstimate = reward + max(self.Q[nextState[0], nextState[1]])
-        # incrementally update the Q value in the table
-        self.Q[state[0], state[1], action] += self.learningRate * (qEstimate - self.Q[state[0], state[1], action])
-
-    def learnFromMemory(self):
-        for x in range(0, self.maxBoxes):
-            for xDot in range(0, self.maxBoxes):
-                for a in range(0, self.environment.action_space.n):
-                    for nextState in self.nextStateReward[x][xDot][a]:
-                        reward = self.nextStateReward[x][xDot][a][nextState]
-                        # print(nextState, reward)
-                        self.Qupdate((x, xDot), a, reward, nextState)
-
-    def saveImageOne(self, iteration):
-        # print pathOut + fileName
-        fileName = "MC_" + str(iteration).rjust(6, '0')
-        if not os.path.exists(PATH):
-            os.makedirs(PATH)
-        # print(onePath + fileName + '.png')
-        self.fig.savefig(PATH + fileName + '.png', dpi=100)
