@@ -4,6 +4,7 @@ from agents import TabularAgent
 from agents import MonteCarloAgent
 from agents import SARSAAgent
 from agents import TDnAgent
+from agents import DynaQAgent
 
 # Python imports
 import numpy as np
@@ -94,7 +95,8 @@ env = gym.make("MountainCar-v0")
 # agent = TabularAgent(env)
 # agent = MonteCarloAgent(env)
 # agent = SARSAAgent(env)
-agent = TDnAgent(env, 20)
+# agent = TDnAgent(env, 20)
+agent = SARSAAgent(env, 60)
 
 runAgent(agent, 20000)
 # testTDn(env)

@@ -1,5 +1,3 @@
-
-  
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -19,7 +17,7 @@ class RandomAgent(object):
 
 
 class TabularAgent(object):
-    def __init__(self, environment):
+    def __init__(self, environment, maxBoxes=20):
             # Set up figure
         self.fig = plt.figure(figsize=(40,8), facecolor='white')
         self.qFunction0 = self.fig.add_subplot(1,5,1, frameon=True)
@@ -56,7 +54,7 @@ class TabularAgent(object):
         self.environment = environment
         self.exploreRate = 0.9
         self.learningRate = 0.2
-        self.maxBoxes = 20
+        self.maxBoxes = maxBoxes
         # keep track of rewards for visualization
         self.rewardList = []
         self.oneReward = 0
@@ -245,8 +243,8 @@ class MonteCarloAgent(TabularAgent):
 
 
 class SARSAAgent(TabularAgent):
-    def __init__(self, environment):
-        super().__init__(environment)
+    def __init__(self, environment, maxBoxes=20):
+        super().__init__(environment, maxBoxes)
 
     def act(self, stateC):
         state = self.convertState(stateC)
@@ -263,7 +261,7 @@ class SARSAAgent(TabularAgent):
         if not nextState in self.nextStateReward[state[0]][state[1]][action]:
             self.nextStateReward[state[0]][state[1]][action][nextState] = reward
         # use the Bellman relationship to get a new estimate for Q
-        super().Qupdate(state, action, reward, nextState)
+        # super().Qupdate(state, action, reward, nextState)
         self.oneReward += reward
         if done:
             super().learnFromMemory()
@@ -287,7 +285,7 @@ class TDnAgent(TabularAgent):
     def __init__(self, environment, n=50, learningRate=0.2):
         super().__init__(environment)
         # setup the hyper parameters
-        self.learningRate = learningRate # 0.2
+        self.learningRate = learningRate  # 0.2
         self.n = n
         # keep track of rewards, actions, and states for TD(n) learning. [(s1, action, r1, nextState), ... (sT, action, rT, nextState)]
         self.tdTrajectory = []
@@ -348,3 +346,46 @@ class TDnAgent(TabularAgent):
                 break
 
             t += 1
+
+class DynaQAgent(TabularAgent):
+    def __init__(self, environment):
+        super().__init__(environment)
+
+    def learn(self, stateC, nextStateC, action, reward, done, episode):
+        state = super().convertState(stateC)
+        self.trajectory.append(state)
+        nextState = super().convertState(nextStateC)
+        # remember this state transition
+        if not nextState in self.nextStateReward[state[0]][state[1]][action]:
+            self.nextStateReward[state[0]][state[1]][action][nextState] = reward
+
+        # use the Bellman relationship to get a new estimate for Q
+        super().Qupdate(state, action, reward, nextState)
+
+        self.oneReward += reward
+
+        if done:
+            self.learnFromMemory()
+            self.trajectory.append(nextState)
+            # reduce th explore rate
+            self.exploreRate = max(self.exploreRate - 0.8 / 10000, 0)
+            # print("reward = %d" % self.oneReward)
+            self.rewardList.append(self.oneReward)
+            self.oneReward = 0
+            if episode % 500 == 0:
+                # for i in range(0, self.maxBoxes):
+                #     self.Q[i,0,0] = -1000
+                print("Updating graphs at %d iterations" % episode)
+                if episode > 0:
+                    self.averageRewardList.append(np.mean(np.array(self.rewardList[-500:])))
+                super().showPlot(episode)
+            self.trajectory = []
+
+    def learnFromMemory(self):
+        for x in range(0, self.maxBoxes):
+            for xDot in range(0, self.maxBoxes):
+                for a in range(0, self.environment.action_space.n):
+                    for nextState in self.nextStateReward[x][xDot][a]:
+                        reward = self.nextStateReward[x][xDot][a][nextState]
+                        #print(nextState, reward)
+                        self.Qupdate((x, xDot), a, reward, nextState)
