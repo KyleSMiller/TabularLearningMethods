@@ -65,7 +65,6 @@ class TabularAgent(object):
         self.nextStateReward = [[[dict(), dict(), dict()] for _ in range(self.maxBoxes)] for _ in range(self.maxBoxes)]
         #self.Q = np.random.uniform(low = -1, high = 1, size = (self.maxBoxes+1, self.maxBoxes+1, self.environment.action_space.n))
 
-
     def convertState(self, state):
         #     Observation:
         # Type: Box(2)
@@ -73,11 +72,17 @@ class TabularAgent(object):
         # 0      Car Position              -1.2           0.6
         # 1      Car Velocity              -0.07          0.07
         # converts the continuous values to integers for the table
-        return (self.convert(state[0], self.environment.observation_space.low[0], self.environment.observation_space.high[0], self.maxBoxes), 
-                self.convert(state[1], self.environment.observation_space.low[1], self.environment.observation_space.high[1], self.maxBoxes))
-        
+        return (
+        self.convert(state[0], self.environment.observation_space.low[0], self.environment.observation_space.high[0],
+                     self.maxBoxes),
+        self.convert(state[1], self.environment.observation_space.low[1], self.environment.observation_space.high[1],
+                     self.maxBoxes))
+
     def convert(self, value, minV, maxV, howMany):
-        return int(round(howMany*(value - minV)/(maxV - minV)))
+        conversion = int(round(howMany * (value - minV) / (maxV - minV)))
+        if conversion >= self.maxBoxes:  # don't let the car go off the edge
+            return self.maxBoxes - 1
+        return conversion
         
     def act(self, stateC):
         state = self.convertState(stateC)
@@ -260,11 +265,12 @@ class SARSAAgent(TabularAgent):
         # remember this state transition
         if not nextState in self.nextStateReward[state[0]][state[1]][action]:
             self.nextStateReward[state[0]][state[1]][action][nextState] = reward
-        # use the Bellman relationship to get a new estimate for Q
-        # super().Qupdate(state, action, reward, nextState)
+        # use the SARSA method to get a new estimate for Q
+        nextAction = super().act(nextState)
+        self.SARSAupdate(state, action, reward, nextState, nextAction)
         self.oneReward += reward
         if done:
-            super().learnFromMemory()
+            # super().learnFromMemory()
             self.trajectory.append(nextState)
             # reduce th explore rate
             self.exploreRate = max(self.exploreRate - 0.8 / 10000, 0)
@@ -279,6 +285,12 @@ class SARSAAgent(TabularAgent):
                     self.averageRewardList.append(np.mean(np.array(self.rewardList[-500:])))
                 super().showPlot(iteration)
             self.trajectory = []
+
+    def SARSAupdate(self, state, action, reward, nextState, nextAction):
+        qEstimate = reward + self.Q[nextState[0], nextState[1], nextAction]
+        # incrementally update the Q value in the table
+        self.Q[state[0], state[1], action] += self.learningRate * (qEstimate - self.Q[state[0], state[1], action])
+
 
 
 class TDnAgent(TabularAgent):
@@ -348,8 +360,8 @@ class TDnAgent(TabularAgent):
             t += 1
 
 class DynaQAgent(TabularAgent):
-    def __init__(self, environment):
-        super().__init__(environment)
+    def __init__(self, environment, maxBoxes=20):
+        super().__init__(environment, maxBoxes)
 
     def learn(self, stateC, nextStateC, action, reward, done, episode):
         state = super().convertState(stateC)
