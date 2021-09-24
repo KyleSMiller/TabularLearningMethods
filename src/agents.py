@@ -313,13 +313,18 @@ class TDnAgent(TabularAgent):
 
         self.oneReward += reward
 
-        # keep track of rewards, actions, and states for Monte Carlo
+        # keep track of rewards, actions, and states for Temporal Difference learning
         self.tdTrajectory.append((state, action, reward, nextState))
+        # (1) use this for online learning. Comment out and uncomment "(2)' for offline learning.
+        self.temporalDifferenceLearn()
 
         if done:
-            self.temporalDifferenceLearn()
+            # self.temporalDifferenceLearn()
             self.tdTrajectory = []
+
+            # (2) use this for offline learning. Comment out and uncomment "(1)" for online learning.
             # self.learnFromMemory()
+
             self.trajectory.append(nextState)
             # reduce th explore rate
             self.exploreRate = max(self.exploreRate - 0.8 / 10000, 0)
